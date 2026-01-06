@@ -44,11 +44,15 @@ export const fetchMarketInsights = async (): Promise<AnalysisResult> => {
       Using Google Search, find the latest data on online purchasing behaviors in Kenya for this year.
       
       I need two things:
-      1. A detailed text summary of the current market trends, popular niches, and consumer behavior.
+      1. An **Executive Summary** of current market trends, popular niches, and consumer behavior. 
+         - Use Markdown formatting.
+         - Use bold headings for key sections.
+         - Use bullet points for lists.
+         - Keep it concise and professional.
       2. A JSON array representing the "Top 5 Online Shopping Categories by Market Share (%)".
       
       Format the output as follows:
-      [Analysis Text]
+      [Executive Summary Markdown]
       
       \`\`\`json
       [

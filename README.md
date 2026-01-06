@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# KenyaTrade Insights
 
-# Run and deploy your AI Studio app
+Real-time analytics for Kenyan online purchasing trends and AI-driven import recommendations from China.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1aX6ubkf0t1zvCqPGp82qa-4ptj5iOFRw
+- **Market Dashboard**: Visualizes top online shopping categories in Kenya using real-time data gathered via Google Search Grounding.
+- **Import Recommendations**: AI-powered suggestions for profitable items to import from China to Kenya. Includes analysis on estimated margins, demand levels, and logistics.
+- **Search Grounding**: Uses the latest Google Search results to provide up-to-date information on market trends, product pricing, and consumer behavior.
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React 19, Tailwind CSS
+- **AI Integration**: Google GenAI SDK (`@google/genai`)
+- **Models Used**: `gemini-3-flash-preview` with Google Search Tool
+- **Visualization**: Recharts
+- **Icons**: Lucide React
 
+## Setup & Configuration
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. **API Key**: This application requires a Google Cloud API Key with access to the Gemini API and Google Search Grounding.
+2. **Environment Variable**: The API key must be available in the environment as `API_KEY`.
+
+## Usage
+
+1. **Market Data Tab**: 
+   - View the current breakdown of e-commerce categories in Kenya.
+   - Read an AI-generated summary of the latest consumer trends.
+
+2. **Import Ideas Tab**: 
+   - Search for specific niches (e.g., "Solar accessories", "Baby products") or leave blank for general trends.
+   - Receive a list of 6 profitable items to import from China, complete with estimated profit margins and reasoning.

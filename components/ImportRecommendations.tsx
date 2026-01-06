@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { fetchImportRecommendations } from '../services/geminiService';
-import { AnalysisResult } from '../types';
-import { Loader2, Search, TrendingUp, DollarSign, Package, AlertCircle, MapPin, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { fetchImportRecommendations, fetchLogisticsDetails } from '../services/geminiService';
+import { AnalysisResult, RecommendationItem, LogisticsDetails } from '../types';
+import { Loader2, Search, TrendingUp, DollarSign, Package, AlertCircle, MapPin, BookOpen, Ship, Plane, Calculator, X, ArrowRight } from 'lucide-react';
 
 const ImportRecommendations: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -12,11 +12,17 @@ const ImportRecommendations: React.FC = () => {
   // Track the specific query used for the current results to display in headers
   const [currentSearchTerm, setCurrentSearchTerm] = useState(''); 
 
+  // Logistics State
+  const [logisticsData, setLogisticsData] = useState<Record<string, LogisticsDetails>>({});
+  const [activeLogisticsId, setActiveLogisticsId] = useState<string | null>(null);
+  const [loadingLogisticsId, setLoadingLogisticsId] = useState<string | null>(null);
+
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
     setHasSearched(true);
     setCurrentSearchTerm(query);
+    setActiveLogisticsId(null); // Close any open logistics modals
     try {
       // If query is empty, it fetches general top items for the specified country
       const result = await fetchImportRecommendations(query || undefined, country);
@@ -28,16 +34,51 @@ const ImportRecommendations: React.FC = () => {
     }
   };
 
+  const handleViewLogistics = async (item: RecommendationItem) => {
+    if (logisticsData[item.id]) {
+        setActiveLogisticsId(item.id);
+        return;
+    }
+
+    setLoadingLogisticsId(item.id);
+    try {
+        const details = await fetchLogisticsDetails(item.productName, item.category, country);
+        setLogisticsData(prev => ({...prev, [item.id]: details}));
+        setActiveLogisticsId(item.id);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setLoadingLogisticsId(null);
+    }
+  };
+
+  const closeLogistics = () => setActiveLogisticsId(null);
+
   // Initial load
-  React.useEffect(() => {
+  useEffect(() => {
     if (!hasSearched) {
       handleSearch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lock body scroll when slide-over is open
+  useEffect(() => {
+    if (activeLogisticsId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [activeLogisticsId]);
+
+  const activeItem = data?.recommendations?.find(r => r.id === activeLogisticsId);
+  const activeLogistics = activeLogisticsId ? logisticsData[activeLogisticsId] : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="bg-emerald-900 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <h2 className="text-3xl font-bold mb-4">Find Profitable Imports</h2>
@@ -124,7 +165,7 @@ const ImportRecommendations: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {data.recommendations.map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition border border-slate-200 flex flex-col h-full group">
+                  <div key={item.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition border border-slate-200 flex flex-col h-full group relative">
                     <div className="p-5 flex-grow">
                       <div className="flex justify-between items-start mb-3">
                         <span className="inline-block px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-100">
@@ -157,7 +198,16 @@ const ImportRecommendations: React.FC = () => {
                         <Package className="h-3 w-3 mr-1" />
                         <span>Source: China</span>
                       </div>
-                      <button className="text-xs font-semibold text-emerald-600 hover:text-emerald-800">
+                      <button 
+                        onClick={() => handleViewLogistics(item)}
+                        disabled={loadingLogisticsId === item.id}
+                        className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {loadingLogisticsId === item.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                            <Ship className="h-3 w-3" />
+                        )}
                         View Logistics
                       </button>
                     </div>
@@ -188,6 +238,125 @@ const ImportRecommendations: React.FC = () => {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Logistics Slide-over */}
+      {activeLogisticsId && activeItem && activeLogistics && (
+        <div className="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Background overlay */}
+            <div 
+                className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" 
+                onClick={closeLogistics}
+            ></div>
+            
+            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
+              {/* Panel */}
+              <div className="pointer-events-auto w-screen max-w-lg transform transition-transform sm:duration-500">
+                <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                  {/* Header */}
+                  <div className="bg-emerald-900 px-6 py-6 text-white sm:px-8 sticky top-0 z-20">
+                    <div className="flex items-center justify-between">
+                         <h2 className="text-xl font-bold leading-6 flex items-center gap-2">
+                            <Ship className="h-6 w-6 text-emerald-400" />
+                            Logistics Breakdown
+                         </h2>
+                         <button 
+                            type="button" 
+                            className="rounded-full p-1 text-emerald-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
+                            onClick={closeLogistics}
+                         >
+                            <span className="sr-only">Close panel</span>
+                            <X className="h-6 w-6" aria-hidden="true" />
+                         </button>
+                    </div>
+                    <div className="mt-4">
+                        <p className="text-sm text-emerald-100">
+                             Comprehensive shipping analysis for <span className="font-semibold text-white border-b border-emerald-400/30 pb-0.5">{activeItem.productName}</span> to {country}.
+                        </p>
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="relative flex-1 px-6 py-8 sm:px-8 space-y-8 bg-slate-50">
+                    
+                    {/* Rates Grid */}
+                    <div className="space-y-6">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 pb-2 border-b border-slate-100">
+                                <Calculator className="h-5 w-5 text-emerald-600" />
+                                Customs & Duties
+                            </h4>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
+                                    <span className="text-slate-600 text-sm">Import Duty</span>
+                                    <span className="font-bold text-slate-900">{activeLogistics.customsDuty}</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
+                                    <span className="text-slate-600 text-sm">VAT</span>
+                                    <span className="font-bold text-slate-900">{activeLogistics.vat}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                             <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 pb-2 border-b border-slate-100">
+                                <Plane className="h-5 w-5 text-emerald-600" />
+                                Freight Estimates
+                            </h4>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
+                                    <span className="text-slate-600 text-sm">Air Freight</span>
+                                    <span className="font-bold text-slate-900">{activeLogistics.airFreightCost}</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
+                                    <span className="text-slate-600 text-sm">Sea Freight</span>
+                                    <span className="font-bold text-slate-900">{activeLogistics.seaFreightCost}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cost Calculation */}
+                    <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
+                        <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-emerald-600" />
+                            Landed Cost Estimate
+                        </h4>
+                        <div className="text-sm text-emerald-800 whitespace-pre-line leading-relaxed">
+                            {activeLogistics.estimatedLandedCostText}
+                        </div>
+                    </div>
+
+                    {/* Forwarders */}
+                    <div>
+                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Package className="h-5 w-5 text-emerald-600" />
+                            Recommended Forwarders
+                        </h4>
+                        <ul className="grid grid-cols-1 gap-3">
+                            {activeLogistics.topForwarders.map((agent, idx) => (
+                                <li key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 transition-colors shadow-sm group cursor-default">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
+                                            {idx + 1}
+                                        </div>
+                                        <span className="font-medium text-slate-700">{agent}</span>
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                                </li>
+                            ))}
+                            {activeLogistics.topForwarders.length === 0 && (
+                                <li className="text-sm text-slate-500 italic p-4 bg-white rounded-xl border border-slate-200">No specific forwarders found for this route.</li>
+                            )}
+                        </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

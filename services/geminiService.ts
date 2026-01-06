@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { AnalysisResult, ChartDataPoint, RecommendationItem, GroundingSource } from "../types";
+import { AnalysisResult, ChartDataPoint, RecommendationItem, GroundingSource, LogisticsDetails } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -192,4 +192,51 @@ export const fetchImportRecommendations = async (specificCategory?: string, coun
     console.error("Gemini API Error:", error);
     throw new Error("Failed to fetch recommendations.");
   }
+};
+
+export const fetchLogisticsDetails = async (productName: string, category: string, country: string): Promise<LogisticsDetails> => {
+  try {
+    const prompt = `
+      Act as a logistics expert for importing goods from China to ${country}.
+      Perform a Google Search to find the current customs duties, taxes, and shipping rates for "${productName}" (Category: ${category}).
+      Also find top 3 reliable freight forwarders or shipping agents operating the China to ${country} route.
+      
+      Output a JSON object with specific details:
+      \`\`\`json
+      {
+        "customsDuty": "e.g. 25%",
+        "vat": "e.g. 16%",
+        "airFreightCost": "e.g. $10-12 per kg",
+        "seaFreightCost": "e.g. $400 per CBM",
+        "topForwarders": ["Agent A", "Agent B", "Agent C"],
+        "estimatedLandedCostText": "A brief text explanation calculating the total landed cost for a hypothetical batch (e.g. 10 units) of ${productName}. Estimate purchase price if needed. Include item cost + shipping + duty + vat."
+      }
+      \`\`\`
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+
+    const text = response.text || "{}";
+    const data = extractJson(text);
+    
+    if (!data) throw new Error("Failed to parse logistics data");
+
+    return {
+        customsDuty: data.customsDuty || "Unknown",
+        vat: data.vat || "Unknown",
+        airFreightCost: data.airFreightCost || "Unknown",
+        seaFreightCost: data.seaFreightCost || "Unknown",
+        topForwarders: Array.isArray(data.topForwarders) ? data.topForwarders : [],
+        estimatedLandedCostText: data.estimatedLandedCostText || "No calculation available."
+    };
+ } catch (error) {
+     console.error("Logistics API Error", error);
+     throw new Error("Failed to fetch logistics details");
+ }
 };

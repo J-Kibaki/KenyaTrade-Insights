@@ -19,6 +19,15 @@ export interface RecommendationItem {
   reasoning: string;
 }
 
+export interface LogisticsDetails {
+  customsDuty: string;
+  vat: string;
+  airFreightCost: string;
+  seaFreightCost: string;
+  topForwarders: string[];
+  estimatedLandedCostText: string;
+}
+
 export interface AnalysisResult {
   text: string;
   chartData: ChartDataPoint[];

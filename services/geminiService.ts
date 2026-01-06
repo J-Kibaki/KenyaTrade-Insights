@@ -95,32 +95,71 @@ export const fetchMarketInsights = async (): Promise<AnalysisResult> => {
   }
 };
 
-export const fetchImportRecommendations = async (specificCategory?: string): Promise<AnalysisResult> => {
+export const fetchImportRecommendations = async (specificCategory?: string, country: string = "Kenya"): Promise<AnalysisResult> => {
   try {
-    const categoryPrompt = specificCategory ? `focusing specifically on ${specificCategory}` : `across popular categories`;
-    const prompt = `
-      Act as an import/export consultant.
-      Using Google Search, identify 6 highly profitable items to import from China to Kenya right now, ${categoryPrompt}.
-      Consider: AliExpress/Alibaba pricing, shipping to Nairobi/Mombasa, customs, and local Kenyan resale prices.
-      
-      Output:
-      1. A brief strategic overview of the import opportunity.
-      2. A JSON array of recommended items.
-      
-      Format the JSON exactly like this:
-      \`\`\`json
-      [
-        {
-          "id": "1",
-          "productName": "Example Item",
-          "category": "Electronics",
-          "estimatedMargin": "50-70%",
-          "demandLevel": "High",
-          "reasoning": "Short explanation of why this sells well in Kenya."
-        }
-      ]
-      \`\`\`
-    `;
+    const isSpecific = specificCategory && specificCategory.trim().length > 0;
+    
+    let prompt;
+
+    if (isSpecific) {
+      // Detailed Deep Dive Prompt
+      prompt = `
+        Act as a specialist import/export consultant for the "${specificCategory}" market.
+        Using Google Search, perform a deep-dive analysis for importing ${specificCategory} products from China to ${country}.
+        
+        I need a comprehensive report containing:
+        1. A Detailed Strategic Analysis:
+           - Target Audience: Who buys ${specificCategory} in ${country}?
+           - Market Gaps: What specific features or types are missing or overpriced locally?
+           - Logistics & Customs: Specific considerations for ${specificCategory} (e.g., volumetric weight, fragile handling, duty rates).
+           - Marketing Strategy: How to sell these effectively.
+        
+        2. A JSON array of 6 specific recommended products within this category.
+        
+        Format the output as follows:
+        [Detailed Analysis Text]
+        
+        \`\`\`json
+        [
+          {
+            "id": "1",
+            "productName": "Specific Product Name",
+            "category": "Sub-category",
+            "estimatedMargin": "e.g. 150% (Buy $5, Sell $12.50)",
+            "demandLevel": "High",
+            "reasoning": "Detailed explanation of why this specific SKU is a winner. Include price arbitrage details and specific demand drivers."
+          }
+        ]
+        \`\`\`
+      `;
+    } else {
+      // General Overview Prompt
+      prompt = `
+        Act as an import/export consultant.
+        Using Google Search, identify 6 highly profitable items to import from China to ${country} right now across popular trending categories.
+        Consider: AliExpress/Alibaba pricing, shipping to major cities in ${country}, customs, and local ${country} resale prices.
+        
+        Output:
+        1. A brief strategic overview of the import opportunity in ${country}.
+        2. A JSON array of recommended items.
+        
+        Format the output as follows:
+        [Analysis Text]
+
+        \`\`\`json
+        [
+          {
+            "id": "1",
+            "productName": "Example Item",
+            "category": "Electronics",
+            "estimatedMargin": "50-70%",
+            "demandLevel": "High",
+            "reasoning": "Short explanation of why this sells well in ${country}."
+          }
+        ]
+        \`\`\`
+      `;
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',

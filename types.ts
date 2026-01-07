@@ -24,6 +24,8 @@ export interface LogisticsDetails {
   vat: string;
   airFreightCost: string;
   seaFreightCost: string;
+  airFreightEstimate?: number;
+  seaFreightEstimate?: number;
   topForwarders: string[];
   estimatedLandedCostText: string;
 }

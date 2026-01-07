@@ -212,6 +212,8 @@ export const fetchLogisticsDetails = async (productName: string, category: strin
         "vat": "e.g. 16%",
         "airFreightCost": "e.g. $10-12 per kg",
         "seaFreightCost": "e.g. $400 per CBM",
+        "airFreightEstimate": 500, // Numeric Estimate in USD for a hypothetical 50kg shipment
+        "seaFreightEstimate": 200, // Numeric Estimate in USD for a hypothetical 0.5 CBM shipment
         "topForwarders": ["Agent A", "Agent B", "Agent C"],
         "estimatedLandedCostText": "A brief text explanation calculating the total landed cost for a hypothetical batch (e.g. 10 units) of ${productName}. Estimate purchase price if needed. Include item cost + shipping + duty + vat."
       }
@@ -236,6 +238,8 @@ export const fetchLogisticsDetails = async (productName: string, category: strin
         vat: data.vat || "Unknown",
         airFreightCost: data.airFreightCost || "Unknown",
         seaFreightCost: data.seaFreightCost || "Unknown",
+        airFreightEstimate: typeof data.airFreightEstimate === 'number' ? data.airFreightEstimate : 0,
+        seaFreightEstimate: typeof data.seaFreightEstimate === 'number' ? data.seaFreightEstimate : 0,
         topForwarders: Array.isArray(data.topForwarders) ? data.topForwarders : [],
         estimatedLandedCostText: data.estimatedLandedCostText || "No calculation available."
     };
